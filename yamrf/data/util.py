@@ -57,7 +57,6 @@ def load_task_from_cfg(cfg: DictConfig) -> Task:
 
     Args:
         cfg (DictConfig): The config to use.
-        tokenizer (PreTrainedTokenizer): The tokenizer to be passed to the task.
 
     Returns:
         Task: The created task object.
