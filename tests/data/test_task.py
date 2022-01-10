@@ -1,18 +1,19 @@
 """
 Tests for the Task features
 """
-from transformers import AutoTokenizer
+import pytest
 from datasets import Dataset
 
-from pathlib import Path
-from yamrf.data import Task, load_task_from_cfg
+from yamrf import load_task_from_cfg
 
 
 class TestTask:
-    def test_read_data(self, tmpdir, simple_config, dummy_data):
-        tmpdir_path = Path(tmpdir)
+
+    @pytest.mark.parametrize("split", ['train', 'val'])
+    def test_get_dataset(self, simple_config, dummy_data, split):
         task = load_task_from_cfg(simple_config)
-        raw, tokenized = task.read_data(tmpdir_path, set_format="torch")
+        tokenized = task.get_dataset(split, set_format="torch")
+        raw = task.preprocessed_splits[split]
 
         actual = raw.to_dict()
         dummy_data['input_sequence'] = list(
@@ -35,3 +36,71 @@ class TestTask:
             remove_columns=expected_tokenized.column_names
         )
         assert tokenized.to_dict() == expected_tokenized.to_dict()
+
+    @pytest.mark.parametrize('predictions',
+                             [['Do You Want Ants'],
+                              ['Because that ', 'is how you get ants'],
+                              "a"],
+                             ids=['SinglePred', 'DoublePred', "SingleToken"])
+    def test_postprocess(self, simple_config, predictions):
+        task = load_task_from_cfg(simple_config)
+        task.postprocessors.append(lambda x: f"Test: {x}")
+        if isinstance(predictions, str):
+            preds_tokked = task.tokenizer(
+                [predictions], add_special_tokens=False, return_tensors='pt'
+            )['input_ids']
+            preds_tokked = preds_tokked.squeeze(0)
+            preds_input = preds_tokked
+            target_tokenized = task.tokenizer(
+                ["b"], add_special_tokens=False, return_tensors='pt'
+            )['input_ids']
+            target_tokenized = target_tokenized.squeeze(0)
+        else:
+            target = ["Archer"]
+            target_tokenized = task.tokenizer(target, return_tensors='pt')['input_ids']
+            preds_tokked = task.tokenizer(
+                predictions,
+                return_tensors='pt',
+                padding='longest'
+            )['input_ids']
+            if len(predictions) == 2:
+                preds_input = preds_tokked.unsqueeze(0)
+            else:
+                preds_input = preds_tokked
+
+        expected_preds = list(
+            map(
+                lambda x: f"Test: {task.tokenizer.decode(x, skip_special_tokens=True)}",
+                preds_tokked
+            )
+        )
+        expected_targets = list(
+            map(
+                lambda x: f"Test: {task.tokenizer.decode(x, skip_special_tokens=True)}",
+                target_tokenized
+            )
+        )
+
+        if isinstance(predictions, list):
+            expected_preds = [expected_preds]
+        else:
+            expected_preds = [[pred] for pred in expected_preds]
+
+        actual_preds, actual_targets = task.postprocess(preds_input.numpy(),
+                                                        target_tokenized.numpy())
+        assert actual_preds == expected_preds
+        assert actual_targets == expected_targets
+
+    def test_evaluate(self, simple_config):
+        task = load_task_from_cfg(simple_config)
+        task.metric_fns = [
+            lambda preds, targets: {'em': sum(p == t for p, t in zip(preds, targets)) / len(preds)}
+        ]
+
+        result = task.evaluate(
+            ["A", "B", "C", "E", "E"],
+            ["A", "B", "C", "D", "E"]
+        )
+        assert result == {
+            "em": 0.8
+        }

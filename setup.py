@@ -24,7 +24,11 @@ setuptools.setup(
         "transformers>=4.15.0"
         "datasets>=1.17.0",
         "overrides>=6.1.0",
-        "omegaconf>=2.1.1"
+        "omegaconf>=2.1.1",
+        "torch>=1.10.1",
+        "torchaudio>=0.10.1",
+        "torchvision>=0.11.2",
+        "sacrebleu>=2.0.0",
     ],
     requires_python=">=3.7",
     classifiers=[

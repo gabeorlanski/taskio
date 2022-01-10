@@ -1,7 +1,7 @@
 import logging
 from typing import Dict
 
-from yamrf.common import Registrable
+from yamrf.registrable import Registrable
 
 logger = logging.getLogger(__name__)
 
