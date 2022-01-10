@@ -23,9 +23,10 @@ class TestTask:
         assert actual == dummy_data
 
         def tokenize(ex, idx):
+            label_data = task.tokenizer(ex['target'])
             return {
-                'idx'   : idx,
-                'labels': task.tokenizer(ex['target'])['input_ids'],
+                'idx'                 : idx,
+                'labels'              : label_data['input_ids'],
                 **task.tokenizer(ex['input_sequence'])
             }
 
@@ -86,8 +87,8 @@ class TestTask:
         else:
             expected_preds = [[pred] for pred in expected_preds]
 
-        actual_preds, actual_targets = task.postprocess(preds_input.numpy(),
-                                                        target_tokenized.numpy())
+        actual_preds, actual_targets = task.postprocess_np(preds_input.numpy(),
+                                                           target_tokenized.numpy())
         assert actual_preds == expected_preds
         assert actual_targets == expected_targets
 
@@ -98,7 +99,7 @@ class TestTask:
         ]
 
         result = task.evaluate(
-            ["A", "B", "C", "E", "E"],
+            [["A"], ["B"], ["C"], ["E"], ["E"]],
             ["A", "B", "C", "D", "E"]
         )
         assert result == {

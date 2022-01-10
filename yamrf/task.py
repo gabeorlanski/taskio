@@ -164,10 +164,20 @@ class Task(Registrable):
         """
         raise NotImplementedError()
 
-    def postprocess(
+    def postprocess_np(
             self,
             predictions: np.ndarray,
             targets: np.ndarray
+    ) -> Tuple[List[List[str]], List[str]]:
+        return self.postprocess(
+            predictions=torch.from_numpy(predictions),
+            targets=torch.from_numpy(targets)
+        )
+
+    def postprocess(
+            self,
+            predictions: torch.Tensor,
+            targets: torch.Tensor
     ) -> Tuple[List[List[str]], List[str]]:
         """
         Postprocess the raw predictions and the raw targets.
@@ -179,9 +189,6 @@ class Task(Registrable):
         Returns:
             The list of predictions and the list of targets.
         """
-        # TODO(gabeorlanski): Make this support np instead of torch.
-        predictions = torch.from_numpy(predictions)
-        targets = torch.from_numpy(targets)
 
         if predictions.size()[0] != targets.size()[0]:
             predictions_size_str = ', '.join(map(str, predictions.size()))

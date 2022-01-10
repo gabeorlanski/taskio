@@ -19,11 +19,11 @@ def exact_match(predictions: List[str], targets: List[str]) -> Dict:
 @Metric.register("bleu")
 def bleu(predictions: List[str], targets: List[str]) -> Dict:
     # This came from the t5 repo
-    if isinstance(targets[0], list):
-        targets = [[x for x in target] for target in targets]
-    else:
-        # Need to wrap targets in another list for corpus_bleu.
-        targets = [[t] for t in targets]
+    if not isinstance(targets[0], list):
+        targets = [[target] for target in targets]
+    # else:
+    #     # Need to wrap targets in another list for corpus_bleu.
+    #     targets = [targets]
 
     bleu_score = sacrebleu.corpus_bleu(
         predictions,
