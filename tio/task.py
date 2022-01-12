@@ -282,7 +282,7 @@ class Task(Registrable):
             postprocessors=postprocessors,
             metric_fns=metric_fns,
             additional_splits=additional_splits,
-            **additional_kwargs
+            **(additional_kwargs or {})
         )
 
 
@@ -330,13 +330,13 @@ def load_task_from_cfg(cfg: DictConfig) -> Task:
         Task: The created task object.
     """
     logger.info(f"Initializing task registered to name '{cfg['task']['name']}'")
-    task_cls = Task.by_name(cfg["task"]["name"])
     cfg_dict = OmegaConf.to_object(cfg["task"])
     preprocessors, postprocessors = load_processors_from_cfg(cfg)
     logger.info(f"Metrics are {cfg.get('metrics', [])}")
     metrics = [Metric.by_name(metric) for metric in cfg.get('metrics', [])]
 
-    return task_cls(
+    return Task.get_task(
+        name=cfg["task"]["name"],
         tokenizer=AutoTokenizer.from_pretrained(cfg['model']),
         preprocessors=preprocessors,
         postprocessors=postprocessors,
