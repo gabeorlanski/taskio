@@ -4,7 +4,7 @@ Tests for the Task features
 import pytest
 from datasets import Dataset
 
-from yamrf import load_task_from_cfg
+from tio import load_task_from_cfg
 
 
 class TestTask:

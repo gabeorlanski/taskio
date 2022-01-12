@@ -1,15 +1,15 @@
 import setuptools
-from yamrf.version import VERSION
+from tio.version import VERSION
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="yamrf",
+    name="tio",
     version=VERSION,
     author="Gabriel Orlanski",
     author_email="gabeorlanski@gmail.com",
-    description="Yet Another Minimal Research Framework",
+    description="TaskIO Framework",
     license="Apache 2.0",
     long_description=long_description,
     long_description_content_type="text/markdown",

@@ -9,9 +9,9 @@ from pathlib import Path
 from transformers import PreTrainedTokenizer, AutoTokenizer
 from typing import Dict, List, Callable, Tuple, Optional, Union
 
-from yamrf.metrics import Metric
-from yamrf.processor import Preprocessor, Postprocessor
-from yamrf.registrable import Registrable
+from tio.metrics import Metric
+from tio.processor import Preprocessor, Postprocessor
+from tio.registrable import Registrable
 
 logger = logging.getLogger(__name__)
 PathType = Union[os.PathLike, str, Path]

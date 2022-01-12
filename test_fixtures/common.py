@@ -1,6 +1,6 @@
 import pytest
 import yaml
-from yamrf.common import FIXTURES_ROOT
+from tio.common import FIXTURES_ROOT
 from .dummy_objects import *
 from omegaconf import OmegaConf
 

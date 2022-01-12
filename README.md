@@ -1,5 +1,11 @@
-# Yet Another Minimal Research Framework
+# TaskIO (TIO)
 
-A minimal framework for NLP research. Mainly created for my own needs.
+A minimal framework for handling tasks input and output processing. This is heavily inspired by [Google's SeqIO](https://github.com/google/seqio) but not written with `tf.data`. For the time being, this uses [HuggingFace's Dataset](https://huggingface.co/docs/datasets/) framework as the backbone.
 
-This is still a WIP
+
+### Install
+
+To install run: 
+```shell
+pip install git+git@github.com:gabeorlanski/tio.git
+```

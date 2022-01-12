@@ -1,7 +1,7 @@
 from typing import Dict, List
 import sacrebleu
 
-from yamrf.registrable import Registrable
+from tio.registrable import Registrable
 
 
 class Metric(Registrable):
@@ -20,10 +20,10 @@ def exact_match(predictions: List[str], targets: List[str]) -> Dict:
 def bleu(predictions: List[str], targets: List[str]) -> Dict:
     # This came from the t5 repo
     if not isinstance(targets[0], list):
-        targets = [[target] for target in targets]
-    # else:
-    #     # Need to wrap targets in another list for corpus_bleu.
-    #     targets = [targets]
+        targets = [[t for t in target] for target in targets]
+    else:
+        # Need to wrap targets in another list for corpus_bleu.
+        targets = [targets]
 
     bleu_score = sacrebleu.corpus_bleu(
         predictions,
