@@ -28,7 +28,7 @@ has 3 key elements that make it up:
    with
    [`functools.partial`](https://docs.python.org/3/library/functools.html#functools.partial))
 4. A set of `metric_fns` that are a list of callables. Each function must have
-   the signature `target_
+   the signature `predictions: List[str], targets: List[str]`
 
 To create your own task, you must first subclass the `Task` class:
 
