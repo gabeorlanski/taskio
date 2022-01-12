@@ -17,7 +17,7 @@ pip install git+git@github.com:gabeorlanski/taskio.git
 ### Basic Guide
 
 Each [`Task`](https://github.com/gabeorlanski/taskio/blob/f7ed6594fb73f74489d2b700c05e8c758b4f6ff3/tio/task.py)
-has 3 key elements that make it up:
+has 4 key elements that make it up:
 
 1. A `SPLIT_MAPPING` that maps a split name (e.g. `train`,`validation`) to some
    key value.
