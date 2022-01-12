@@ -10,9 +10,9 @@ from tio import load_task_from_cfg
 class TestTask:
 
     @pytest.mark.parametrize("split", ['train', 'val'])
-    def test_get_dataset(self, simple_config, dummy_data, split):
+    def test_get_split(self, simple_config, dummy_data, split):
         task = load_task_from_cfg(simple_config)
-        tokenized = task.get_dataset(split, set_format="torch")
+        tokenized = task.get_split(split, set_format="torch")
         raw = task.preprocessed_splits[split]
 
         actual = raw.to_dict()

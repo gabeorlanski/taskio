@@ -87,7 +87,7 @@ class Task(Registrable):
         """
         raise NotImplementedError()
 
-    def get_dataset(
+    def get_split(
             self, split: str, num_procs: int = 1, set_format: Optional[str] = None
     ) -> Dataset:
         """
@@ -263,6 +263,27 @@ class Task(Registrable):
             metrics.update(metric(preds_single, targets))
 
         return metrics
+
+    @classmethod
+    def get_task(
+            cls,
+            name,
+            tokenizer: PreTrainedTokenizer,
+            preprocessors: List[Callable],
+            postprocessors: List[Callable],
+            metric_fns: List[Callable],
+            additional_splits: Dict[str, PathType] = None,
+            additional_kwargs: Dict = None
+    ):
+        task_cls = Task.by_name(name)
+        return task_cls(
+            tokenizer=tokenizer,
+            preprocessors=preprocessors,
+            postprocessors=postprocessors,
+            metric_fns=metric_fns,
+            additional_splits=additional_splits,
+            **additional_kwargs
+        )
 
 
 def load_processors_from_cfg(cfg: DictConfig) -> Tuple[List[Callable], List[Callable]]:
