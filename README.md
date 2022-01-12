@@ -7,5 +7,5 @@ A minimal framework for handling tasks input and output processing. This is heav
 
 To install run: 
 ```shell
-pip install git+git@github.com:gabeorlanski/tio.git
+pip install git+git@github.com:gabeorlanski/taskio.git
 ```
