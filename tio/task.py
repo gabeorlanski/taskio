@@ -3,10 +3,9 @@ import torch
 from datasets import Dataset
 from functools import partial
 import logging
-from omegaconf import DictConfig, OmegaConf
 import os
 from pathlib import Path
-from transformers import PreTrainedTokenizer, AutoTokenizer
+from transformers import PreTrainedTokenizer
 from typing import Dict, List, Callable, Tuple, Optional, Union
 
 from tio.metrics import Metric
@@ -274,7 +273,38 @@ class Task(Registrable):
             metric_fns: List[Callable],
             additional_splits: Dict[str, PathType] = None,
             additional_kwargs: Dict = None
-    ):
+    ) -> 'Task':
+        """
+        Get and instantiate a task by name.
+        Args:
+            name (str): The task to load.
+
+            tokenizer (PreTrainedTokenizer): HuggingFace Tokenizer.
+
+            preprocessors (List[Callable]): List of callables for preprocessing.
+                Each must take in a single argument of type ``Dict`` and return
+                a ``Dict``.
+
+                Each ``example`` passed to the preprocessors will have an input
+                sequence and a target entry.
+
+            postprocessors (List[Callable]): List of callables for postprocessing.
+                Each must take in a single argument of type ``Dict`` and return
+                a ``Dict``.
+
+            metric_fns (List[Callable]): List of metric functions to run on the
+                postprocessed data. Each function must have the signature
+                ``prediction, target``.
+
+            additional_splits (Dict[str,PathType]): Dict of additional splits to
+                add to SPLIT_MAPPING. Does NOT overwrite existing splits even if
+                they share the same split name.
+
+            additional_kwargs (Dict): Other kwargs to pass to the constructor.
+
+        Returns:
+            Task: The initialized task.
+        """
         task_cls = Task.by_name(name)
         return task_cls(
             tokenizer=tokenizer,
@@ -285,61 +315,61 @@ class Task(Registrable):
             **(additional_kwargs or {})
         )
 
+    @classmethod
+    def from_dict(cls, task_dict: Dict, tokenizer: PreTrainedTokenizer) -> 'Task':
+        """
+        Load a task from a dictionary.
 
-def load_processors_from_cfg(cfg: DictConfig) -> Tuple[List[Callable], List[Callable]]:
-    """
-    Create the pre- and post- processors from a given config.
+        It expects the keys:
 
-    Args:
-        cfg (DictConfig): The config to use.
+            name (str): The task to load.
 
-    Returns:
-        Tuple[List[Callable], List[Callable]]: The created preprocessors and
-            postprocessors.
-    """
-    logger.debug("Loading processors")
-    preprocessors = []
-    postprocessors = []
+            preprocessors (List[Callable]): List of callables for preprocessing.
+                    Each must take in a single argument of type ``Dict`` and return
+                    a ``Dict``.
 
-    if cfg.get("preprocessors") is not None:
-        logger.debug("Preprocessors found")
+                    Each ``example`` passed to the preprocessors will have an input
+                    sequence and a target entry.
+
+            postprocessors (List[Callable]): List of callables for postprocessing.
+                Each must take in a single argument of type ``Dict`` and return
+                a ``Dict``.
+
+            metric_fns (List[Callable]): List of metric functions to run on the
+                postprocessed data. Each function must have the signature
+                ``prediction, target``.
+
+            additional_splits (Dict[str,PathType]): Dict of additional splits to
+                add to SPLIT_MAPPING. Does NOT overwrite existing splits even if
+                they share the same split name.
+
+            additional_kwargs (Dict): Other kwargs to pass to the constructor.
+
+        Args:
+            task_dict (Dict): The dict to use.
+
+            tokenizer (PreTrainedTokenizer): The tokenizer to use.
+
+        Returns:
+            Task: The initialized task.
+        """
         preprocessors = [
             partial(Preprocessor.by_name(name), **func_kwargs)
-            for name, func_kwargs in cfg["preprocessors"].items()
+            for name, func_kwargs in task_dict.get("preprocessors", {}).items()
         ]
-    logger.info(f"{len(preprocessors)} preprocessors found")
-
-    if cfg.get("postprocessors") is not None:
-        logger.debug("Postprocessors found")
         postprocessors = [
             partial(Postprocessor.by_name(name), **func_kwargs)
-            for name, func_kwargs in cfg["postprocessors"].items()
+            for name, func_kwargs in task_dict.get("postprocessors", {}).items()
         ]
-    logger.info(f"{len(postprocessors)} postprocessors found")
-    return preprocessors, postprocessors
+        metrics = [Metric.by_name(metric) for metric in task_dict.get('metrics', [])]
 
-
-def load_task_from_cfg(cfg: DictConfig) -> Task:
-    """
-    Create a Task from a cfg
-
-    Args:
-        cfg (DictConfig): The config to use.
-
-    Returns:
-        Task: The created task object.
-    """
-    logger.info(f"Initializing task registered to name '{cfg['task']['name']}'")
-    cfg_dict = OmegaConf.to_object(cfg["task"])
-    preprocessors, postprocessors = load_processors_from_cfg(cfg)
-    logger.info(f"Metrics are {cfg.get('metrics', [])}")
-    metrics = [Metric.by_name(metric) for metric in cfg.get('metrics', [])]
-
-    return Task.get_task(
-        name=cfg["task"]["name"],
-        tokenizer=AutoTokenizer.from_pretrained(cfg['model']),
-        preprocessors=preprocessors,
-        postprocessors=postprocessors,
-        metric_fns=metrics,
-        **cfg_dict.get('args', {}),
-    )
+        return Task.get_task(
+            name=task_dict['name'],
+            tokenizer=tokenizer,
+            preprocessors=preprocessors,
+            postprocessors=postprocessors,
+            metric_fns=metrics,
+            additional_splits=task_dict.get('additional_splits'),
+            additional_kwargs=task_dict.get("additional_kwargs")
+        )
+#

@@ -3,30 +3,31 @@ Tests for the Task features
 """
 import pytest
 from datasets import Dataset
-
-from tio import load_task_from_cfg
+from transformers import AutoTokenizer
+from tio import Task
 
 
 class TestTask:
 
     @pytest.mark.parametrize("split", ['train', 'val'])
     def test_get_split(self, simple_config, dummy_data, split):
-        task = load_task_from_cfg(simple_config)
+        task = Task.from_dict(
+            simple_config['task'],
+            AutoTokenizer.from_pretrained(simple_config['model'])
+        )
         tokenized = task.get_split(split, set_format="torch")
         raw = task.preprocessed_splits[split]
 
         actual = raw.to_dict()
-        dummy_data['input_sequence'] = list(
-            map('Generate Python: {}'.format, dummy_data['input'])
-        )
+        dummy_data['input_sequence'] = dummy_data['input']
         dummy_data['target'] = dummy_data['output']
         assert actual == dummy_data
 
         def tokenize(ex, idx):
             label_data = task.tokenizer(ex['target'])
             return {
-                'idx'                 : idx,
-                'labels'              : label_data['input_ids'],
+                'idx'   : idx,
+                'labels': label_data['input_ids'],
                 **task.tokenizer(ex['input_sequence'])
             }
 
@@ -44,7 +45,10 @@ class TestTask:
                               "a"],
                              ids=['SinglePred', 'DoublePred', "SingleToken"])
     def test_postprocess(self, simple_config, predictions):
-        task = load_task_from_cfg(simple_config)
+        task = Task.from_dict(
+            simple_config['task'],
+            AutoTokenizer.from_pretrained(simple_config['model'])
+        )
         task.postprocessors.append(lambda x: f"Test: {x}")
         if isinstance(predictions, str):
             preds_tokked = task.tokenizer(
@@ -93,7 +97,10 @@ class TestTask:
         assert actual_targets == expected_targets
 
     def test_evaluate(self, simple_config):
-        task = load_task_from_cfg(simple_config)
+        task = Task.from_dict(
+            simple_config['task'],
+            AutoTokenizer.from_pretrained(simple_config['model'])
+        )
         task.metric_fns = [
             lambda preds, targets: {'em': sum(p == t for p, t in zip(preds, targets)) / len(preds)}
         ]
