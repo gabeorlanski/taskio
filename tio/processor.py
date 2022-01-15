@@ -24,7 +24,19 @@ class Postprocessor(Registrable):
     pass
 
 
-@Preprocessor.register("add_prefix")
+@Preprocessor.register("add-prefix")
 def add_prefix(example: Dict, prefix: str):
     example["input_sequence"] = f"{prefix} {example['input_sequence']}"
+    return example
+
+
+@Preprocessor.register('lm-target')
+def lm_target(example: Dict):
+    example['target'] = f'{example["input_sequence"]} {example["target"]}'
+    return example
+
+
+@Preprocessor.register('add-suffix')
+def add_suffix(example: Dict, suffix: str, key: str):
+    example[key] = f"{example[key]} {suffix}"
     return example

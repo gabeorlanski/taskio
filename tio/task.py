@@ -86,6 +86,24 @@ class Task(Registrable):
         """
         raise NotImplementedError()
 
+    @staticmethod
+    def map_to_standard_entries(sample: Dict) -> Dict:
+        """
+        Function that must be implemented by sub-classes for mapping dataset
+        specific columns to standardized ones.
+
+        The output dict must have the keys ``"input_sequence"`` and
+        ``"target"``.
+
+        Args:
+            sample (Dict): The dict for a given sample in the dataset.
+
+        Returns:
+            Dict: The sample with the added standard entries.
+
+        """
+        raise NotImplementedError()
+
     def get_split(
             self, split: str, num_procs: int = 1, set_format: Optional[str] = None
     ) -> Dataset:
@@ -104,18 +122,12 @@ class Task(Registrable):
         Returns:
             Dataset: The preprocessed and tokenized dataset.
         """
-        dataset = self.dataset_load_fn(split)
-
-        def preprocess(example, idx):
-            for fn in self.preprocessors:
-                example = fn(example)
-            return {"idx": idx, **example}
 
         def tokenize(example, idx):
-            out = {"idx": idx, **self.tokenizer(example.pop("input_sequence"))}
+            # We do not pop so that we can still remove the columns later.
+            out = {"idx": idx, **self.tokenizer(example["input_sequence"])}
 
-            # We do not need the input sequence after tokenizing.
-            target_tokenized = self.tokenizer(example.pop("target"))
+            target_tokenized = self.tokenizer(example["target"])
             out.update(
                 {
                     "labels": target_tokenized["input_ids"],
@@ -123,12 +135,7 @@ class Task(Registrable):
             )
             return out
 
-        preprocessed = dataset.map(
-            preprocess,
-            with_indices=True,
-            num_proc=num_procs,
-            remove_columns=dataset.column_names,
-        )
+        preprocessed = self.preprocess(split, num_procs)
 
         # Save the preprocessed under the split name so that later it can be
         # used to save aligned predictions after evaluation.
@@ -138,7 +145,7 @@ class Task(Registrable):
             tokenize,
             with_indices=True,
             num_proc=num_procs,
-            remove_columns=dataset.column_names,
+            remove_columns=preprocessed.column_names,
         )
 
         if set_format:
@@ -146,50 +153,58 @@ class Task(Registrable):
 
         return tokenized
 
-    @staticmethod
-    def map_to_standard_entries(sample: Dict) -> Dict:
+    def _preprocess(self, example: Dict, idx: int) -> Dict:
         """
-        Function that must be implemented by sub-classes for mapping dataset
-        specific columns to standardized ones.
+        Preprocess a single example.
 
-        The output dict must have the keys ``"input_sequence"`` and
-        ``"target"``.
         Args:
-            sample (Dict): The dict for a given sample in the dataset.
+            example (Dict): The example to preprocess
+            idx (int): The idx of the example.
 
         Returns:
-            Dict: The sample with the added standard entries.
-
+            Dict: The preprocessed example.
         """
-        raise NotImplementedError()
+        for fn in self.preprocessors:
+            example = fn(example)
+        return {"idx": idx, **example}
 
-    def postprocess_np(
-            self,
-            predictions: np.ndarray,
-            targets: np.ndarray
-    ) -> Tuple[List[List[str]], List[str]]:
-        return self.postprocess(
-            predictions=torch.from_numpy(predictions),
-            targets=torch.from_numpy(targets)
+    def preprocess(self, split: str, num_procs: int = 1) -> Dataset:
+        """
+        Preprocess a split.
+
+        Args:
+            split (str): The split to preprocess. Must be in ``SPLIT_MAPPING``
+            num_procs (int): Number of processes to use.
+
+        Returns:
+            Dataset: The preprocessed split.
+        """
+        dataset = self.dataset_load_fn(split)
+
+        return dataset.map(
+            self._preprocess,
+            with_indices=True,
+            num_proc=num_procs,
+            remove_columns=dataset.column_names,
         )
 
     def postprocess(
             self,
-            predictions: torch.Tensor,
-            targets: torch.Tensor
+            predictions: np.ndarray,
+            targets: np.ndarray
     ) -> Tuple[List[List[str]], List[str]]:
         """
         Postprocess the raw predictions and the raw targets.
 
         Args:
-            predictions (torch.Tensor): The raw predictions.
-            targets (torch.Tensor): The raw targets.
+            predictions (np.ndarray): The raw predictions.
+            targets (np.ndarray): The raw targets.
 
         Returns:
             The list of predictions and the list of targets.
         """
 
-        if predictions.size()[0] != targets.size()[0]:
+        if predictions.shape[0] != targets.shape[0]:
             predictions_size_str = ', '.join(map(str, predictions.size()))
             target_size_str = ', '.join(map(str, targets.size()))
             logger.error("Predictions and targets do not have the same first size.")
@@ -197,7 +212,7 @@ class Task(Registrable):
             logger.error(f"Targets has a size of [{target_size_str}]")
             raise ValueError(f"Sizes do not match. {predictions_size_str} != {target_size_str}")
 
-        n_dims = len(predictions.size())
+        n_dims = len(predictions.shape)
         num_sequences_per_sample = 1
 
         if n_dims > 3:
@@ -208,14 +223,14 @@ class Task(Registrable):
         elif n_dims == 1:
             # In the case it is a 1-D array, reshape it into a (samples, 1)
             # tensor so that we can decode it with the tokenizer.
-            predictions = predictions.unsqueeze(-1)
-            targets = targets.unsqueeze(1)
+            predictions = np.expand_dims(predictions, axis=-1)
+            targets = np.expand_dims(targets, 1)
         elif n_dims == 3:
             # In the case that it is a 3-D array, reshape it into a
             # (samples * num return sequences, sequence length) tensor.
-            num_sequences_per_sample = predictions.size()[1]
+            num_sequences_per_sample = predictions.shape[1]
 
-            predictions = torch.flatten(predictions, start_dim=0, end_dim=1)
+            predictions = predictions.reshape(predictions.shape[0] * predictions.shape[1], -1)
 
         # Decode both the predictions and the targets
         def postprocess(sequence):
@@ -233,7 +248,7 @@ class Task(Registrable):
         )))
 
         out_preds = []
-        for pred_idx in range(0, targets.size()[0], num_sequences_per_sample):
+        for pred_idx in range(0, predictions.shape[0], num_sequences_per_sample):
             out_preds.append(
                 predictions_decoded[pred_idx:pred_idx + num_sequences_per_sample]
             )

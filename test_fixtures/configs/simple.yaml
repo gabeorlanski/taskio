@@ -13,7 +13,7 @@ metrics:
   - exact-match
   - bleu
 preprocessors:
-  add_prefix:
+  add-prefix:
     prefix: 'Generate Python:'
 task:
   name: dummy
