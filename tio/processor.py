@@ -40,3 +40,10 @@ def lm_target(example: Dict):
 def add_suffix(example: Dict, suffix: str, key: str):
     example[key] = f"{example[key]} {suffix}"
     return example
+
+
+@Preprocessor.register('concat')
+def concat(ex):
+    ex['input_sequence'] = f"{ex['input_sequence']} {ex['target']}"
+    ex['target'] = ex['input_sequence']
+    return ex
