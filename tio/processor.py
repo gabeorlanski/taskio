@@ -37,8 +37,8 @@ def lm_target(example: Dict):
 
 
 @Preprocessor.register('add-suffix')
-def add_suffix(example: Dict, suffix: str, key: str):
-    example[key] = f"{example[key]} {suffix}"
+def add_suffix(example: Dict, suffix: str, key: str, add_space: bool = False):
+    example[key] = f"{example[key]}{' ' if add_space else ''}{suffix}"
     return example
 
 

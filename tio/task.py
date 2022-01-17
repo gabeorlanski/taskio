@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 from datasets import Dataset
 from functools import partial
 import logging
@@ -105,7 +104,8 @@ class Task(Registrable):
         raise NotImplementedError()
 
     def get_split(
-            self, split: str, num_procs: int = 1, set_format: Optional[str] = None
+            self, split: str, num_procs: int = 1, set_format: Optional[str] = None,
+            add_special_tokens: bool = True, overwrite_cache: bool = False
     ) -> Dataset:
         """
         Method to read and preprocess dataset.
@@ -125,7 +125,10 @@ class Task(Registrable):
 
         def tokenize(example, idx):
             # We do not pop so that we can still remove the columns later.
-            out = {"idx": idx, **self.tokenizer(example["input_sequence"])}
+            out = {
+                "idx": idx, **self.tokenizer(example["input_sequence"],
+                                             add_special_tokens=add_special_tokens)
+            }
 
             target_tokenized = self.tokenizer(example["target"])
             out.update(
@@ -146,6 +149,7 @@ class Task(Registrable):
             with_indices=True,
             num_proc=num_procs,
             remove_columns=preprocessed.column_names,
+            load_from_cache_file=not overwrite_cache,
         )
 
         if set_format:
