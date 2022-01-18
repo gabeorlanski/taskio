@@ -36,3 +36,7 @@ class Registrable(object):
     @classmethod
     def list_available(cls):
         return list(Registrable._registered_components[cls])
+
+    @classmethod
+    def is_name_registered(cls, name):
+        return name in Registrable._registered_components[cls]

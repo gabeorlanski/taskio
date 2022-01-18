@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import numpy as np
 from datasets import Dataset
 from functools import partial
@@ -5,7 +7,7 @@ import logging
 import os
 from pathlib import Path
 from transformers import PreTrainedTokenizer
-from typing import Dict, List, Callable, Tuple, Optional, Union
+from typing import Dict, List, Callable, Tuple, Optional, Union, Generator
 
 from tio.metrics import Metric
 from tio.processor import Preprocessor, Postprocessor
@@ -380,7 +382,14 @@ class Task(Registrable):
             partial(Postprocessor.by_name(name), **func_kwargs)
             for name, func_kwargs in task_dict.get("postprocessors", {}).items()
         ]
-        metrics = [Metric.by_name(metric) for metric in task_dict.get('metrics', [])]
+        metrics = []
+        for metric in task_dict.get('metrics'):
+            if isinstance(metric, dict):
+                metric_name, metric_dict = list(metric.items())
+            else:
+                metric_name = metric
+                metric_dict = {}
+            metrics.append(Metric.from_dict(metric_name, metric_dict))
 
         return Task.get_task(
             name=task_dict['name'],
@@ -391,4 +400,33 @@ class Task(Registrable):
             additional_splits=task_dict.get('additional_splits'),
             additional_kwargs=task_dict.get("additional_kwargs")
         )
-#
+
+    def serialize_task_features(
+            self,
+            idx: int,
+            predictions: List,
+            processed_sample: Dict
+    ) -> Dict:
+        raise NotImplementedError()
+
+    def serialize_predictions(
+            self,
+            split: str,
+            indices: List,
+            predictions: List[List]
+    ) -> Generator[Dict, None, None]:
+
+        processed_data = self.preprocessed_splits[split]
+
+        assert len(indices) == len(predictions), "Indices must be the same length as predictions"
+
+        for idx, preds in zip(indices, predictions):
+            processed_sample = processed_data[idx]
+            sample = self.serialize_task_features(idx, preds, processed_sample)
+            yield {
+                'idx'           : idx,
+                'target'        : processed_sample['target'],
+                'input_sequence': processed_sample['input_sequence'],
+                'prediction'    : preds,
+                **sample
+            }
