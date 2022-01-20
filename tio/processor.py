@@ -47,3 +47,17 @@ def concat(ex):
     ex['input_sequence'] = f"{ex['input_sequence']} {ex['target']}"
     ex['target'] = ex['input_sequence']
     return ex
+
+
+@Postprocessor.register('split')
+def split_on_phrase(sequence: str, split_phrase: str):
+    sequence_split = sequence.split(split_phrase)
+    if len(sequence_split) == 1:
+        return sequence
+    _, *new_seq = sequence_split
+    return split_phrase.join(new_seq)
+
+
+@Postprocessor.register('strip')
+def strip_sequence(sequence: str):
+    return sequence.strip()

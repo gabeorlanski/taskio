@@ -47,6 +47,7 @@ class Task(Registrable):
 
     SPLIT_MAPPING = {}
 
+
     def __init__(
             self,
             tokenizer: PreTrainedTokenizer,
