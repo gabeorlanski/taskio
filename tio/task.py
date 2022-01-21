@@ -196,47 +196,17 @@ class Task(Registrable):
 
     def postprocess(
             self,
-            predictions: np.ndarray,
-            targets: np.ndarray
-    ) -> Tuple[List[List[str]], List[str]]:
+            sequences: np.ndarray
+    ) -> List[str]:
         """
         Postprocess the raw predictions and the raw targets.
 
         Args:
             predictions (np.ndarray): The raw predictions.
-            targets (np.ndarray): The raw targets.
 
         Returns:
             The list of predictions and the list of targets.
         """
-
-        # if predictions.shape[0] != targets.shape[0]:
-        #     predictions_size_str = ', '.join(map(str, predictions.shape))
-        #     target_size_str = ', '.join(map(str, targets.shape))
-        #     logger.error("Predictions and targets do not have the same first size.")
-        #     logger.error(f"Predictions has a size of [{predictions_size_str}]")
-        #     logger.error(f"Targets has a size of [{target_size_str}]")
-        #     raise ValueError(f"Sizes do not match. {predictions_size_str} != {target_size_str}")
-        #
-        # n_dims = len(predictions.shape)
-        # num_sequences_per_sample = 1
-        #
-        # if n_dims > 3:
-        #     logger.error(f"Postprocess cannot handle {len(predictions.size())} "
-        #                  f"dimension tensors.")
-        #     raise ValueError("Postprocess cannot handle predictions or targets "
-        #                      "with more than 3 dimensions.")
-        # elif n_dims == 1:
-        #     # In the case it is a 1-D array, reshape it into a (samples, 1)
-        #     # tensor so that we can decode it with the tokenizer.
-        #     predictions = np.expand_dims(predictions, axis=-1)
-        #     targets = np.expand_dims(targets, 1)
-        # elif n_dims == 3:
-        #     # In the case that it is a 3-D array, reshape it into a
-        #     # (samples * num return sequences, sequence length) tensor.
-        #     num_sequences_per_sample = predictions.shape[1]
-        #
-        #     predictions = predictions.reshape(predictions.shape[0] * predictions.shape[1], -1)
 
         # Decode both the predictions and the targets
         def postprocess(sequence):
@@ -244,16 +214,10 @@ class Task(Registrable):
                 sequence = fn(sequence)
             return sequence
 
-        predictions_decoded = list(map(postprocess, self.tokenizer.batch_decode(
-            predictions,
+        return list(map(postprocess, self.tokenizer.batch_decode(
+            sequences,
             skip_special_tokens=True
         )))
-        targets_decoded = list(map(postprocess, self.tokenizer.batch_decode(
-            targets,
-            skip_special_tokens=True
-        )))
-
-        return predictions_decoded, targets_decoded
 
     def evaluate(
             self,
