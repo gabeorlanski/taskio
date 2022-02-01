@@ -53,7 +53,7 @@ class Task(Registrable):
             preprocessors: List[Callable],
             postprocessors: List[Callable],
             metric_fns: List[Callable],
-            additional_splits: Dict[str, PathType] = None
+            split_mapping: Dict[str, PathType] = None
     ):
         self.input_sequence_key = ("input_sequence",)
         self.target_key = "target"
@@ -63,9 +63,9 @@ class Task(Registrable):
         self.preprocessed_splits = {}
         self.metric_fns = metric_fns or []
 
-        if additional_splits:
-            logger.debug(f"Adding {len(additional_splits)} additional splits")
-            for split_name, value in additional_splits.items():
+        if split_mapping:
+            logger.debug(f"Adding {len(split_mapping)} additional splits")
+            for split_name, value in split_mapping.items():
                 if split_name in self.SPLIT_MAPPING:
                     logger.warning(f"Trying to add split {split_name}, but "
                                    f"already in SPLIT_MAPPING with value "
@@ -250,7 +250,7 @@ class Task(Registrable):
             preprocessors: List[Callable],
             postprocessors: List[Callable],
             metric_fns: List[Callable],
-            additional_splits: Dict[str, PathType] = None,
+            split_mapping: Dict[str, PathType] = None,
             additional_kwargs: Dict = None
     ) -> 'Task':
         """
@@ -275,7 +275,7 @@ class Task(Registrable):
                 postprocessed data. Each function must have the signature
                 ``prediction, target``.
 
-            additional_splits (Dict[str,PathType]): Dict of additional splits to
+            split_mapping (Dict[str,PathType]): Dict of additional splits to
                 add to SPLIT_MAPPING. Does NOT overwrite existing splits even if
                 they share the same split name.
 
@@ -290,7 +290,7 @@ class Task(Registrable):
             preprocessors=preprocessors,
             postprocessors=postprocessors,
             metric_fns=metric_fns,
-            additional_splits=additional_splits,
+            split_mapping=split_mapping,
             **(additional_kwargs or {})
         )
 
