@@ -34,5 +34,5 @@ class DummyTask(Task):
         sample['target'] = sample['output']
         return sample
 
-    def dataset_load_fn(self, split: str) -> Dataset:
+    def _load_samples(self, split: str) -> Dataset:
         return Dataset.from_dict(EXPECTED_DUMMY_DATA)

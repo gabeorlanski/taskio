@@ -1,7 +1,7 @@
 from collections import defaultdict
 
 import numpy as np
-from datasets import Dataset
+from datasets import Dataset, IterableDataset
 from functools import partial
 import logging
 import os
@@ -39,13 +39,17 @@ class Task(Registrable):
             postprocessed data. Each function must have the signature
             ``prediction, target``.
 
-        additional_splits (Dict[str,PathType]): Dict of additional splits to
+        split_mapping (Dict[str,PathType]): Dict of additional splits to
             add to SPLIT_MAPPING. Does NOT overwrite existing splits even if
             they share the same split name.
 
     """
 
     SPLIT_MAPPING = {}
+
+    # Iterable datasets do not have column names, so use this to remove columns
+    # from the preprocessed split.
+    RAW_COLUMN_NAMES = []
 
     def __init__(
             self,
@@ -75,14 +79,17 @@ class Task(Registrable):
                 logger.debug(f"Adding split {split_name} with value {value}")
                 self.SPLIT_MAPPING[split_name] = value
 
-    def dataset_load_fn(self, split: str) -> Dataset:
+    def _load_samples(self, split: str) -> Dataset:
         """
-        Method to read in the raw data that is to be implemented by subclasses.
+        Read in the raw data that is to be implemented by subclasses.
+
+
+
         Args:
             split (str): The split to use.
 
         Returns:
-            Dataset: The processed HuggingFace Dataset.
+            Dataset: The dataset.
 
         """
         raise NotImplementedError()
@@ -192,7 +199,7 @@ class Task(Registrable):
         Returns:
             Dataset: The preprocessed split.
         """
-        dataset = self.dataset_load_fn(split)
+        dataset = self._load_samples(split)
 
         return dataset.map(
             self._preprocess,
@@ -349,7 +356,7 @@ class Task(Registrable):
             for name, func_kwargs in task_dict.get("postprocessors", {}).items()
         ]
         metrics = []
-        for metric in task_dict.get('metrics',[]):
+        for metric in task_dict.get('metrics', []):
             if isinstance(metric, dict):
                 metric_name, metric_dict = list(metric.items())
             else:
