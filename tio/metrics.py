@@ -3,7 +3,7 @@ import sacrebleu
 
 from tio.registrable import Registrable
 
-from tio.common import prepare_inputs_for_bleu
+from tio.common import prepare_references_for_bleu
 
 
 class Metric(Registrable):
@@ -30,7 +30,7 @@ class ExactMatch(Metric):
 class BLEU(Metric):
     def __call__(self, predictions: List[str], targets: List[str]) -> Dict:
         # This came from the t5 repo
-        targets = prepare_inputs_for_bleu(targets)
+        targets = prepare_references_for_bleu(targets)
 
         bleu_score = sacrebleu.corpus_bleu(
             predictions,

@@ -106,8 +106,12 @@ class Task(Registrable):
         raise NotImplementedError()
 
     def get_split(
-            self, split: str, num_procs: int = 1, set_format: Optional[str] = None,
-            add_special_tokens: bool = True, overwrite_cache: bool = False
+            self,
+            split: str,
+            num_procs: int = 1,
+            set_format: Optional[str] = None,
+            add_special_tokens: bool = True,
+            overwrite_cache: bool = False
     ) -> Dataset:
         """
         Method to read and preprocess dataset.
@@ -120,6 +124,9 @@ class Task(Registrable):
             num_procs (int): Number of processes to use in preprocessing.
             set_format (Optional[str]): If passed, the tokenized dataset will
                 be set to this format.
+            add_special_tokens (bool): Add special tokens with the tokenizer.
+                Default is True.
+            overwrite_cache (bool): Overwrite HuggingFace's cache.
 
         Returns:
             Dataset: The preprocessed and tokenized dataset.
@@ -202,13 +209,14 @@ class Task(Registrable):
         Postprocess the raw predictions and the raw targets.
 
         Args:
-            predictions (np.ndarray): The raw predictions.
+            sequences (np.ndarray): The raw sequences to process.
 
         Returns:
-            The list of predictions and the list of targets.
+            The list of processed sequences.
         """
 
-        # Decode both the predictions and the targets
+        # Helper function for mapping the task specific postprocessors to a 
+        # single sequence.
         def postprocess(sequence):
             for fn in self.postprocessors:
                 sequence = fn(sequence)
@@ -341,7 +349,7 @@ class Task(Registrable):
             for name, func_kwargs in task_dict.get("postprocessors", {}).items()
         ]
         metrics = []
-        for metric in task_dict.get('metrics'):
+        for metric in task_dict.get('metrics',[]):
             if isinstance(metric, dict):
                 metric_name, metric_dict = list(metric.items())
             else:
@@ -355,8 +363,8 @@ class Task(Registrable):
             preprocessors=preprocessors,
             postprocessors=postprocessors,
             metric_fns=metrics,
-            additional_splits=task_dict.get('additional_splits'),
-            additional_kwargs=task_dict.get("additional_kwargs")
+            split_mapping=task_dict.get('split_mapping'),
+            additional_kwargs=task_dict.get("kwargs")
         )
 
     def serialize_task_features(
@@ -365,6 +373,30 @@ class Task(Registrable):
             predictions: List,
             processed_sample: Dict
     ) -> Dict:
+        """
+        Function for serializing task specific features. Subclasses MUST 
+        implement this.
+
+        Example of when this is useful: Returning columns that are not used in
+        prediction but you still want to save them.
+        
+        This should NOT return the following keys as they are handled by
+        serialize_predictions:
+
+        * 'idx'
+        * 'target'
+        * 'input_sequence'
+        * 'prediction'
+        
+        Args:
+            idx (int): The index of the prediction. 
+            predictions (List[str]): The list of predictions. 
+            processed_sample (Dict): The processed Sample. 
+
+        Returns:
+            serialized_features (Dict): The serialized task specific featueres.
+
+        """
         raise NotImplementedError()
 
     def serialize_predictions(
@@ -373,6 +405,17 @@ class Task(Registrable):
             indices: List,
             predictions: List[List]
     ) -> Generator[Dict, None, None]:
+        """
+        Serialize a prediction to a dict.
+
+        Args:
+            split (str): The split the predictions came from.
+            indices (List): The indices corresponding to the predictions.
+            predictions (List[List]): The list of predictions for each sample.
+
+        Returns:
+            A generator of dicts for each sample.
+        """
 
         processed_data = self.preprocessed_splits[split]
 
