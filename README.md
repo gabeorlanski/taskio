@@ -80,7 +80,7 @@ tokenized_dataset = task.get_split("train")
 ...
 
 metrics = task.evaluate(
-    **task.postprocess(predictions, tokenized_dataset['labels'])
+    **task.postprocess_raw_tokens(predictions, tokenized_dataset['labels'])
 )
 ```
 

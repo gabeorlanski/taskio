@@ -208,7 +208,12 @@ class Task(Registrable):
             remove_columns=dataset.column_names,
         )
 
-    def postprocess(
+    def postprocess(self, sequence):
+        for fn in self.postprocessors:
+            sequence = fn(sequence)
+        return sequence
+
+    def postprocess_raw_tokens(
             self,
             sequences: np.ndarray
     ) -> List[str]:
@@ -222,14 +227,7 @@ class Task(Registrable):
             The list of processed sequences.
         """
 
-        # Helper function for mapping the task specific postprocessors to a 
-        # single sequence.
-        def postprocess(sequence):
-            for fn in self.postprocessors:
-                sequence = fn(sequence)
-            return sequence
-
-        return list(map(postprocess, self.tokenizer.batch_decode(
+        return list(map(self.postprocess, self.tokenizer.batch_decode(
             sequences,
             skip_special_tokens=True
         )))

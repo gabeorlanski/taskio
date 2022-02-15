@@ -60,7 +60,7 @@ class TestTask:
 
         expected = [f'Test: {p}' for p in sequences]
 
-        actual = task.postprocess(sequence_tokenized)
+        actual = task.postprocess_raw_tokens(sequence_tokenized)
         assert actual == expected
 
     def test_evaluate(self, simple_config):
