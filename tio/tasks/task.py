@@ -156,10 +156,6 @@ class Task(Registrable):
 
         preprocessed = self.preprocess(split, num_procs)
 
-        # Save the preprocessed under the split name so that later it can be
-        # used to save aligned predictions after evaluation.
-        self.preprocessed_splits[split] = preprocessed
-
         tokenized = preprocessed.map(
             tokenize,
             with_indices=True,
@@ -201,12 +197,16 @@ class Task(Registrable):
         """
         dataset = self._load_samples(split)
 
-        return dataset.map(
+        preprocessed = dataset.map(
             self._preprocess,
             with_indices=True,
             num_proc=num_procs,
             remove_columns=dataset.column_names,
         )
+        # Save the preprocessed under the split name so that later it can be
+        # used to save aligned predictions after evaluation.
+        self.preprocessed_splits[split] = preprocessed
+        return preprocessed
 
     def postprocess(self, sequence):
         for fn in self.postprocessors:
