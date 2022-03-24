@@ -91,7 +91,6 @@ class BLEU(Metric):
             smooth_value=0.0,
             lowercase=False,
             tokenize="intl",
-            use_effective_order=False
         )
 
     def __call__(self, predictions: List[str], targets: List[str]) -> Dict:
@@ -102,6 +101,7 @@ class BLEU(Metric):
             predictions,
             targets,
             force=False,
+            use_effective_order=False,
             **self._bleu_kwargs
         )
         return {"bleu": bleu_score.score}
@@ -110,6 +110,7 @@ class BLEU(Metric):
         result = sacrebleu.sentence_bleu(
             prediction,
             [target],
+            use_effective_order=True,
             **self._bleu_kwargs
         )
         return {'bleu': result.score}
