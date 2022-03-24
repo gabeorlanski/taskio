@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import numpy as np
 import sacrebleu
@@ -41,6 +41,13 @@ class Metric(Registrable):
         """
         return self([prediction], [target])
 
+    def get_oracle_best_pred(self, predictions, target) -> str:
+        best_pred_idx = np.argmax([
+            self.calculate_single_example(p, target)[self.main_metric_key]
+            for p in predictions
+        ])
+        return predictions[best_pred_idx]
+
     def oracle(self, predictions: List[List[str]], targets: List[str]) -> Dict:
         """
         Calculate the oracle score of a list of lists of predictions and a list
@@ -58,11 +65,7 @@ class Metric(Registrable):
         if len(predictions) != len(targets):
             raise ValueError("Predictions and targets must be the same length.")
         for pred_list, target in zip(predictions, targets):
-            best_pred_idx = np.argmax([
-                self.calculate_single_example(p, target)[self.main_metric_key]
-                for p in pred_list
-            ])
-            best_predictions.append(pred_list[best_pred_idx])
+            best_predictions.append(self.get_oracle_best_pred(pred_list, target))
         return self(best_predictions, targets)
 
 
