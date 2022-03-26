@@ -100,8 +100,8 @@ class Task(Registrable):
         Function that must be implemented by sub-classes for mapping dataset
         specific columns to standardized ones.
 
-        The output dict must have the keys ``"input_sequence"`` and
-        ``"target"``.
+        The output dict must have the keys ``"input_sequence"``,
+        ``"target"``, and ``"task_id"``.
 
         Args:
             sample (Dict): The dict for a given sample in the dataset.
@@ -422,15 +422,16 @@ class Task(Registrable):
             A generator of dicts for each sample.
         """
 
-        processed_data = self.preprocessed_splits[split]
+        processed_data = {d['task_id']: d for d in self.preprocessed_splits[split]}
 
         assert len(indices) == len(predictions), "Indices must be the same length as predictions"
 
-        for idx, preds in zip(indices, predictions):
-            processed_sample = processed_data[idx]
-            sample = self.serialize_task_features(idx, preds, processed_sample)
+        for task_id, preds in zip(indices, predictions):
+            processed_sample = processed_data[task_id]
+            sample = self.serialize_task_features(task_id, preds, processed_sample)
             yield {
-                'idx'           : idx,
+                'idx'           : processed_sample['idx'],
+                'task_id'       : processed_sample['task_id'],
                 'target'        : processed_sample['target'],
                 'input_sequence': processed_sample['input_sequence'],
                 'prediction'    : preds,
