@@ -13,6 +13,7 @@ To install run:
 ```shell
 git clone https://github.com/gabeorlanski/taskio.git
 cd taskio
+pip install -r requirements.txt
 pip install -e .
 ```
 
