@@ -11,7 +11,9 @@ the backbone.
 To install run:
 
 ```shell
-pip install git+git@github.com:gabeorlanski/taskio.git
+git clone https://github.com/gabeorlanski/taskio.git
+cd taskio
+pip install -e .
 ```
 
 ### Basic Guide
