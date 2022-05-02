@@ -118,7 +118,8 @@ class Task(Registrable):
             num_procs: int = 1,
             set_format: Optional[str] = None,
             add_special_tokens: bool = True,
-            overwrite_cache: bool = False
+            overwrite_cache: bool = False,
+            do_truncate: bool = False
     ) -> Dataset:
         """
         Method to read and preprocess dataset.
@@ -134,6 +135,7 @@ class Task(Registrable):
             add_special_tokens (bool): Add special tokens with the tokenizer.
                 Default is True.
             overwrite_cache (bool): Overwrite HuggingFace's cache.
+            do_truncate(bool): Truncate to the models max length
 
         Returns:
             Dataset: The preprocessed and tokenized dataset.
@@ -142,8 +144,12 @@ class Task(Registrable):
         def tokenize(example, idx):
             # We do not pop so that we can still remove the columns later.
             out = {
-                "idx": idx, **self.tokenizer(example["input_sequence"],
-                                             add_special_tokens=add_special_tokens)
+                "idx": idx, **self.tokenizer(
+                    example["input_sequence"],
+                    add_special_tokens=add_special_tokens,
+                    max_length=self.tokenizer.model_max_length,
+                    truncation=do_truncate
+                )
             }
 
             target_tokenized = self.tokenizer(example["target"])
@@ -184,14 +190,14 @@ class Task(Registrable):
             example = fn(example)
         return {"idx": idx, **example}
 
-    def preprocess(self, split: str, num_procs: int = 1) -> Dataset:
+    def preprocess(self, split: str, num_procs: int = 1, overwrite_cache: bool = False) -> Dataset:
         """
         Preprocess a split.
 
         Args:
             split (str): The split to preprocess. Must be in ``SPLIT_MAPPING``
             num_procs (int): Number of processes to use.
-
+            overwrite_cache (bool): Overwrite the cache
         Returns:
             Dataset: The preprocessed split.
         """
@@ -202,6 +208,7 @@ class Task(Registrable):
             with_indices=True,
             num_proc=num_procs,
             remove_columns=dataset.column_names,
+            load_from_cache_file=not overwrite_cache,
         )
         # Save the preprocessed under the split name so that later it can be
         # used to save aligned predictions after evaluation.
